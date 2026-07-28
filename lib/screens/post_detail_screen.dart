@@ -143,7 +143,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       appBar: AppBar(
         title: const Text('Post'),
         actions: [
-          IconButton(icon: const Icon(Icons.edit_outlined), onPressed: _editPost),
+          IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: _editPost,
+          ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
             onPressed: _deletePost,
@@ -172,6 +175,20 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         ),
                       const SizedBox(height: 12),
                       Text((_post?['content'] ?? '') as String),
+                      if (_post?['image_url'] is String &&
+                          (_post?['image_url'] as String).isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              _post?['image_url'] as String,
+                              height: 200,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
                       const Divider(height: 32),
                       Text(
                         'Comments (${_comments.length})',

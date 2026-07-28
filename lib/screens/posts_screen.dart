@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../apis/http.dart';
 import '../apis/post_api.dart';
+import '../apis/upload_api.dart';
 import '../widgets/app_drawer.dart';
 import 'post_detail_screen.dart';
 
@@ -45,35 +47,77 @@ class _PostsScreenState extends State<PostsScreen> {
   Future<void> _addPost() async {
     final titleCtrl = TextEditingController();
     final contentCtrl = TextEditingController();
+    String? imageUrl;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('New post'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleCtrl,
-              autofocus: true,
-              decoration: const InputDecoration(labelText: 'Title'),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('New post'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleCtrl,
+                autofocus: true,
+                decoration: const InputDecoration(labelText: 'Title'),
+              ),
+              TextField(
+                controller: contentCtrl,
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: 'Content'),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  TextButton.icon(
+                    onPressed: () async {
+                      final picked = await ImagePicker().pickImage(
+                        source: ImageSource.gallery,
+                      );
+                      if (picked == null) return;
+                      try {
+                        final res = await uploadApi.uploadImage(picked.path);
+                        setDialogState(() {
+                          imageUrl = (res.data['data'] as Map)['url'] as String;
+                        });
+                      } catch (e) {
+                        if (mounted) _snack(apiMessage(e));
+                      }
+                    },
+                    icon: const Icon(Icons.image_outlined, size: 18),
+                    label: Text(
+                      imageUrl == null ? 'Add image' : 'Replace image',
+                    ),
+                  ),
+                  if (imageUrl != null)
+                    TextButton(
+                      onPressed: () => setDialogState(() => imageUrl = null),
+                      child: const Text('Remove'),
+                    ),
+                ],
+              ),
+              if (imageUrl != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    imageUrl!,
+                    height: 96,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
             ),
-            TextField(
-              controller: contentCtrl,
-              maxLines: 3,
-              decoration: const InputDecoration(labelText: 'Content'),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Publish'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Publish'),
-          ),
-        ],
       ),
     );
     if (ok != true || titleCtrl.text.trim().isEmpty) return;
@@ -81,6 +125,7 @@ class _PostsScreenState extends State<PostsScreen> {
       await postApi.createPost({
         'title': titleCtrl.text.trim(),
         'content': contentCtrl.text.trim(),
+        'image_url': ?imageUrl,
       });
       await _load();
     } catch (e) {
@@ -126,10 +171,30 @@ class _PostsScreenState extends State<PostsScreen> {
                           ),
                           child: ListTile(
                             title: Text((post['title'] ?? '') as String),
-                            subtitle: Text(
-                              (post['content'] ?? '') as String,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  (post['content'] ?? '') as String,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (post['image_url'] is String &&
+                                    (post['image_url'] as String).isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(
+                                        post['image_url'] as String,
+                                        height: 140,
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                             trailing: author.isEmpty
                                 ? null

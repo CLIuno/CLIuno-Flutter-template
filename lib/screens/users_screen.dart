@@ -54,7 +54,18 @@ class _UsersScreenState extends State<UsersScreen> {
                 itemBuilder: (context, i) {
                   final user = _users[i];
                   return ListTile(
-                    leading: const CircleAvatar(child: Icon(Icons.person)),
+                    leading: CircleAvatar(
+                      backgroundImage:
+                          (user['avatar_url'] is String &&
+                              (user['avatar_url'] as String).isNotEmpty)
+                          ? NetworkImage(user['avatar_url'] as String)
+                          : null,
+                      child:
+                          (user['avatar_url'] is String &&
+                              (user['avatar_url'] as String).isNotEmpty)
+                          ? null
+                          : const Icon(Icons.person),
+                    ),
                     title: Text('@${user['username']}'),
                     subtitle: Text((user['email'] ?? '') as String),
                     onTap: () => Navigator.push(

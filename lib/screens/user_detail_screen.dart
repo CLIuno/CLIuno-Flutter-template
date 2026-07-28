@@ -86,7 +86,21 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                const CircleAvatar(radius: 36, child: Icon(Icons.person, size: 36)),
+                Center(
+                  child: CircleAvatar(
+                    radius: 36,
+                    backgroundImage:
+                        (_user?['avatar_url'] is String &&
+                            (_user?['avatar_url'] as String).isNotEmpty)
+                        ? NetworkImage(_user?['avatar_url'] as String)
+                        : null,
+                    child:
+                        (_user?['avatar_url'] is String &&
+                            (_user?['avatar_url'] as String).isNotEmpty)
+                        ? null
+                        : const Icon(Icons.person, size: 36),
+                  ),
+                ),
                 const SizedBox(height: 12),
                 Center(
                   child: Text(

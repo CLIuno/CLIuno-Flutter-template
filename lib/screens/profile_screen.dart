@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../apis/http.dart';
 import '../apis/post_api.dart';
+import '../apis/upload_api.dart';
+import '../apis/user_api.dart';
 import '../stores/auth_store.dart';
 import '../widgets/app_drawer.dart';
 import 'post_detail_screen.dart';
@@ -16,6 +19,29 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   List<Map<String, dynamic>> _posts = [];
   bool _loading = true;
+  bool _uploading = false;
+
+  /// Pick an image, push it to POST /uploads/image, then attach the returned
+  /// URL to the signed-in user with PATCH /users/current.
+  Future<void> _changeAvatar() async {
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
+
+    setState(() => _uploading = true);
+    try {
+      final res = await uploadApi.uploadImage(picked.path);
+      final url = (res.data['data'] as Map)['url'] as String;
+      await userApi.updateCurrentUser({'avatar_url': url});
+      await AuthStore.instance.fetchCurrentUser();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(apiMessage(e))));
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
 
   @override
   void initState() {
@@ -57,7 +83,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                const CircleAvatar(radius: 36, child: Icon(Icons.person, size: 36)),
+                Center(
+                  child: CircleAvatar(
+                    radius: 36,
+                    backgroundImage:
+                        (user?['avatar_url'] is String &&
+                            (user?['avatar_url'] as String).isNotEmpty)
+                        ? NetworkImage(user?['avatar_url'] as String)
+                        : null,
+                    child:
+                        (user?['avatar_url'] is String &&
+                            (user?['avatar_url'] as String).isNotEmpty)
+                        ? null
+                        : const Icon(Icons.person, size: 36),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: _uploading ? null : _changeAvatar,
+                    icon: const Icon(Icons.photo_camera_outlined, size: 18),
+                    label: Text(_uploading ? 'Uploading…' : 'Change photo'),
+                  ),
+                ),
                 const SizedBox(height: 12),
                 Center(
                   child: Text(
