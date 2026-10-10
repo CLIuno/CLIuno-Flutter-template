@@ -43,3 +43,16 @@ templates serialize booleans as 0/1 — compare with `== true || == 1`.
 
 `flutter_lints` + `prefer_single_quotes`; conventional commits; no generated
 platform files should be hand-edited except for permissions/app-id changes.
+
+## AI agents (Claude Code and friends)
+
+- **Check the CLIuno skills first**: `npx cliuno@latest skills status` — if any is
+  `missing`/`outdated`, run `npx cliuno@latest skills install` (adds `.claude/skills/cliuno-*`:
+  the generator workflow, the scaffold guide, and the shared REST contract).
+- **Generate resources, don't hand-write them**:
+  `npx cliuno@latest make:resource Product --fields name:string,price:number,inStock:boolean`
+  creates `lib/apis/product_api.dart`, `lib/screens/products_screen.dart`, `lib/screens/product_detail_screen.dart` and registers it in `lib/main.dart`, following this
+  template's conventions and the `{status, message, data}` contract. `--dry-run` previews,
+  re-running never duplicates registrations, `--force` overwrites.
+- Single pieces: `make:api`, `make:page`, `make:store`, `make:component`. `npx cliuno@latest make` lists them.
+- Then edit fields/business logic only, and run the gates above.
